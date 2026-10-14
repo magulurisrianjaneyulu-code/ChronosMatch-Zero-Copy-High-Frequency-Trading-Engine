@@ -1,0 +1,8 @@
+# HFT Engine - Python Dependencies
+sortedcontainers>=2.4.0
+
+# Optional: compile Cython LOB for sub-microsecond latency
+# cython>=3.0
+
+# Optional: test runner
+# pytest>=7.0

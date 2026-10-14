@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HFT Engine - Real-Time Telemetry & Limit Order Book</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #07090e;
+      --bg-surface: #0e131f;
+      --bg-surface-elevated: #151c2e;
+      --bg-glass: rgba(14, 19, 31, 0.75);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(0, 242, 254, 0.25);
+      
+      --accent-cyan: #00f2fe;
+      --accent-blue: #4facfe;
+      --accent-green: #00e676;
+      --accent-green-bg: rgba(0, 230, 118, 0.12);
+      --accent-red: #ff3366;
+      --accent-red-bg: rgba(255, 51, 102, 0.12);
+      --accent-yellow: #ffb703;
+      --accent-purple: #7928ca;
+      
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      
+      --font-display: 'Outfit', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-display);
+      overflow-x: hidden;
+      min-height: 100vh;
+      background-image: 
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 242, 254, 0.08), transparent 70%),
+        radial-gradient(circle at 10% 90%, rgba(121, 40, 202, 0.06), transparent 50%);
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0,0,0,0.2);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.15);
+      border-radius: 3px;
+    }
+
+    /* Top Navigation Bar */
+    header {
+      background: var(--bg-glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 14px 28px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px rgba(0, 242, 254, 0.35);
+    }
+
+    .brand-logo svg {
+      width: 20px;
+      height: 20px;
+      fill: #07090e;
+    }
+
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge-live {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0, 230, 118, 0.12);
+      border: 1px solid rgba(0, 230, 118, 0.3);
+      color: var(--accent-green);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-live .pulse-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--accent-green);
+      border-radius: 50%;
+      animation: pulse 1.4s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    .header-telemetry {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+    }
+
+    .system-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+    .system-stat-label {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .system-stat-val {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    /* Main Container */
+    main {
+      padding: 24px 28px;
+      max-width: 1720px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* KPI Summary Cards Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.25s, transform 0.25s;
+    }
+
+    .card:hover {
+      border-color: rgba(255, 255, 255, 0.16);
+      transform: translateY(-2px);
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: transparent;
+      transition: background 0.3s;
+    }
+    .card.accent-cyan::before { background: linear-gradient(90deg, var(--accent-cyan), transparent); }
+    .card.accent-green::before { background: linear-gradient(90deg, var(--accent-green), transparent); }
+    .card.accent-purple::before { background: linear-gradient(90deg, var(--accent-purple), transparent); }
+    .card.accent-yellow::before { background: linear-gradient(90deg, var(--accent-yellow), transparent); }
+
+    .card-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-val {
+      font-family: var(--font-mono);
+      font-size: 1.85rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.03em;
+      margin-bottom: 6px;
+    }
+
+    .card-footer {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+    }
+
+    /* Dashboard Layout: 2 Columns (Order Book / Ladder & Analytics / Tape) */
+    .dashboard-layout {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 1100px) {
+      .dashboard-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Section Panels */
+    .panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 14px;
+    }
+
+    .panel-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-primary);
+    }
+
+    .panel-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Order Book Ladder */
+    .book-summary {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      background: var(--bg-surface-elevated);
+      border-radius: 10px;
+      padding: 12px;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+    }
+
+    .book-stat {
+      text-align: center;
+    }
+    .book-stat-label {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+    .book-stat-val.bid { color: var(--accent-green); font-weight: 700; font-size: 1.05rem; }
+    .book-stat-val.ask { color: var(--accent-red); font-weight: 700; font-size: 1.05rem; }
+    .book-stat-val.spread { color: var(--accent-yellow); font-weight: 700; font-size: 1.05rem; }
+
+    .book-table-container {
+      overflow-x: auto;
+    }
+
+    .book-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+    }
+
+    .book-table th {
+      text-align: right;
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .book-table th:first-child { text-align: left; }
+
+    .book-table td {
+      padding: 7px 10px;
+      text-align: right;
+      position: relative;
+    }
+    .book-table td:first-child { text-align: left; color: var(--text-muted); }
+
+    .row-bid td.px { color: var(--accent-green); font-weight: 600; }
+    .row-ask td.px { color: var(--accent-red); font-weight: 600; }
+    .row-bid td.qty { color: #e2e8f0; }
+    .row-ask td.qty { color: #e2e8f0; }
+
+    .depth-bar-bid {
+      position: absolute;
+      top: 0; bottom: 0; right: 0;
+      background: var(--accent-green-bg);
+      z-index: 1;
+      pointer-events: none;
+      transition: width 0.3s ease;
+    }
+    .depth-bar-ask {
+      position: absolute;
+      top: 0; bottom: 0; left: 0;
+      background: var(--accent-red-bg);
+      z-index: 1;
+      pointer-events: none;
+      transition: width 0.3s ease;
+    }
+
+    .book-table tr td span {
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Right Column: Latency Chart & Market Trade Tape */
+    .right-column {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Canvas Sparkline / Latency Histogram */
+    .chart-container {
+      position: relative;
+      height: 180px;
+      width: 100%;
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    .latency-pills {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+    }
+    .latency-pill {
+      background: var(--bg-surface-elevated);
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      text-align: center;
+    }
+    .latency-pill .label {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+    .latency-pill .val {
+      font-weight: 700;
+      color: var(--accent-cyan);
+    }
+
+    /* Trade Tape */
+    .tape-container {
+      max-height: 260px;
+      overflow-y: auto;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .tape-row {
+      display: grid;
+      grid-template-columns: 80px 70px 1fr 90px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.02);
+      align-items: center;
+      transition: background 0.2s;
+    }
+    .tape-row.buy { border-left: 3px solid var(--accent-green); }
+    .tape-row.sell { border-left: 3px solid var(--accent-red); }
+
+    .tape-time { color: var(--text-muted); font-size: 0.7rem; }
+    .tape-side { font-weight: 700; }
+    .tape-side.buy { color: var(--accent-green); }
+    .tape-side.sell { color: var(--accent-red); }
+    .tape-qty { color: var(--text-primary); text-align: right; }
+    .tape-price { text-align: right; font-weight: 600; color: var(--accent-cyan); }
+
+    /* Interactive Toolbar */
+    .controls-panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 16px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .btn {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 0.82rem;
+      padding: 8px 18px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+      color: #07090e;
+      box-shadow: 0 0 16px rgba(0, 242, 254, 0.25);
+    }
+    .btn-primary:hover {
+      box-shadow: 0 0 24px rgba(0, 242, 254, 0.45);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--bg-surface-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border-subtle);
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .btn-danger {
+      background: rgba(255, 51, 102, 0.15);
+      color: var(--accent-red);
+      border: 1px solid rgba(255, 51, 102, 0.3);
+    }
+    .btn-danger:hover {
+      background: rgba(255, 51, 102, 0.25);
+    }
+
+    .slider-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.82rem;
+      font-family: var(--font-mono);
+    }
+    input[type=range] {
+      accent-color: var(--accent-cyan);
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <header>
+    <div class="brand-group">
+      <div class="brand-logo">
+        <svg viewBox="0 0 24 24"><path d="M13 2.05v3.03c3.39.49 6 3.39 6 6.92 0 .9-.18 1.75-.48 2.54l2.6 1.53c.56-1.24.88-2.62.88-4.07 0-5.18-3.95-9.45-9-9.95zM12 19c-3.87 0-7-3.13-7-7 0-3.53 2.61-6.43 6-6.92V2.05c-5.05.5-9 4.76-9 9.95 0 5.52 4.47 10 9.99 10 3.31 0 6.24-1.61 8.01-4.09l-2.49-1.46C16.32 17.78 14.32 19 12 19z"/></svg>
+      </div>
+      <div>
+        <div class="brand-title">
+          <span>HFT Engine Pro</span>
+          <span class="badge-live"><span class="pulse-dot"></span> LIVE MMAP IPC</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-telemetry">
+      <div class="system-stat">
+        <span class="system-stat-label">Memory Ring Buffer</span>
+        <span class="system-stat-val" id="rb-status">131,072 slots (Zero-Copy)</span>
+      </div>
+      <div class="system-stat">
+        <span class="system-stat-label">Engine Allocation</span>
+        <span class="system-stat-val" style="color: var(--accent-green);">0 GC Pauses</span>
+      </div>
+      <div class="system-stat">
+        <span class="system-stat-label">Wire Protocol</span>
+        <span class="system-stat-val">21 Bytes (=QdIb)</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Telemetry Dashboard -->
+  <main>
+
+    <!-- Top 4 KPI Metrics -->
+    <section class="kpi-grid">
+      <div class="card accent-cyan">
+        <div class="card-label">Market Firehose Ingest <span>⚡ LIVE</span></div>
+        <div class="card-val" id="metric-tps">100,000 <span style="font-size: 1rem; font-weight: normal; color: var(--text-muted);">ord/s</span></div>
+        <div class="card-footer">
+          <span>Sent: <b id="metric-total-sent" style="color: var(--text-primary);">1,452,800</b></span>
+          <span style="color: var(--accent-green);">0 Dropped</span>
+        </div>
+      </div>
+
+      <div class="card accent-green">
+        <div class="card-label">Matching Engine Fills <span>🎯 FIFO LOB</span></div>
+        <div class="card-val" id="metric-trades">1,128,490 <span style="font-size: 1rem; font-weight: normal; color: var(--text-muted);">trades</span></div>
+        <div class="card-footer">
+          <span>Volume: <b id="metric-vol" style="color: var(--text-primary);">284.1M shares</b></span>
+          <span style="color: var(--accent-cyan);" id="metric-fill-rate">98.2% fill</span>
+        </div>
+      </div>
+
+      <div class="card accent-purple">
+        <div class="card-label">LOB Latency (Avg) <span>⏱️ PTP HOT PATH</span></div>
+        <div class="card-val" id="metric-avg-lat" style="color: var(--accent-cyan);">4.35 <span style="font-size: 1rem; font-weight: normal; color: var(--text-muted);">µs</span></div>
+        <div class="card-footer">
+          <span>p50: <b id="metric-p50" style="color: var(--text-primary);">3.80 µs</b></span>
+          <span>p99: <b id="metric-p99" style="color: var(--accent-green);">13.30 µs</b></span>
+        </div>
+      </div>
+
+      <div class="card accent-yellow">
+        <div class="card-label">Top Spread & Midpoint <span>📊 L1 DEPTH</span></div>
+        <div class="card-val" id="metric-spread" style="color: var(--accent-yellow);">0.0018 <span style="font-size: 1rem; font-weight: normal; color: var(--text-muted);">USD</span></div>
+        <div class="card-footer">
+          <span>Mid: <b id="metric-mid" style="color: var(--text-primary);">100.0005</b></span>
+          <span style="color: var(--text-muted);">Tick: 0.0001</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Controls Bar -->
+    <div class="controls-panel">
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <button class="btn btn-primary" id="btn-toggle" onclick="toggleEngine()">⏸ Pause Firehose</button>
+        <button class="btn btn-secondary" onclick="injectShock()">💥 Inject Market Shock</button>
+        <button class="btn btn-secondary" onclick="resetStats()">🔄 Reset Counters</button>
+      </div>
+
+      <div class="slider-group">
+        <span>Target TPS:</span>
+        <input type="range" id="tps-slider" min="10000" max="150000" step="10000" value="100000" oninput="updateTargetTps(this.value)">
+        <span id="slider-val" style="color: var(--accent-cyan); font-weight: 700; width: 75px;">100k/s</span>
+      </div>
+    </div>
+
+    <!-- Core Grid: Limit Order Book & Analytics -->
+    <div class="dashboard-layout">
+
+      <!-- Left Column: Limit Order Book (L1 - L10) -->
+      <section class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>Limit Order Book Depth (L1–L8 Price-Time Priority)</span>
+          </div>
+          <div class="panel-actions">
+            <span style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">REFRESH: 50ms</span>
+          </div>
+        </div>
+
+        <div class="book-summary">
+          <div class="book-stat">
+            <div class="book-stat-label">BEST BID</div>
+            <div class="book-stat-val bid" id="lbl-best-bid">99.5001</div>
+          </div>
+          <div class="book-stat">
+            <div class="book-stat-label">SPREAD</div>
+            <div class="book-stat-val spread" id="lbl-spread">0.0018</div>
+          </div>
+          <div class="book-stat">
+            <div class="book-stat-label">BEST ASK</div>
+            <div class="book-stat-val ask" id="lbl-best-ask">99.5019</div>
+          </div>
+        </div>
+
+        <div class="book-table-container">
+          <table class="book-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">Level</th>
+                <th>Bid Qty</th>
+                <th>Bid Px</th>
+                <th>Ask Px</th>
+                <th>Ask Qty</th>
+              </tr>
+            </thead>
+            <tbody id="book-tbody">
+              <!-- Dynamically rendered -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Right Column: Latency sparkline + Trade tape -->
+      <div class="right-column">
+
+        <!-- Latency Panel -->
+        <section class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>Matching Latency Real-Time Telemetry</span>
+            </div>
+            <span style="font-size: 0.72rem; color: var(--accent-green); font-family: var(--font-mono);">ZERO GC SPIKES</span>
+          </div>
+
+          <div class="chart-container">
+            <canvas id="latCanvas"></canvas>
+          </div>
+
+          <div class="latency-pills">
+            <div class="latency-pill">
+              <div class="label">AVG</div>
+              <div class="val" id="lat-avg">4.35 µs</div>
+            </div>
+            <div class="latency-pill">
+              <div class="label">P50</div>
+              <div class="val" id="lat-p50">3.80 µs</div>
+            </div>
+            <div class="latency-pill">
+              <div class="label">P99</div>
+              <div class="val" id="lat-p99">13.30 µs</div>
+            </div>
+            <div class="latency-pill">
+              <div class="label">P99.9</div>
+              <div class="val" id="lat-p999">105.7 µs</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Live Trade Tape -->
+        <section class="panel" style="flex: 1;">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>Execution Tape (Real-Time Trade Feed)</span>
+            </div>
+            <span style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">STREAM: MEM_MAP</span>
+          </div>
+
+          <div class="tape-container" id="trade-tape">
+            <!-- Dynamically populated trades -->
+          </div>
+        </section>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <script>
+    // State
+    let isRunning = true;
+    let targetTPS = 100000;
+    let totalSent = 1452800;
+    let totalTrades = 1128490;
+    let totalVol = 284100000;
+
+    let bestBid = 99.5001;
+    let bestAsk = 99.5019;
+
+    // Latency sample buffer
+    const latHistory = Array.from({ length: 60 }, () => 3.5 + Math.random() * 2.0);
+
+    // Initial LOB levels
+    let bookLevels = [
+      { level: 'L1', bidQty: 640, bidPx: 99.5001, askPx: 99.5019, askQty: 410 },
+      { level: 'L2', bidQty: 1250, bidPx: 99.4990, askPx: 99.5025, askQty: 950 },
+      { level: 'L3', bidQty: 2100, bidPx: 99.4982, askPx: 99.5038, askQty: 1800 },
+      { level: 'L4', bidQty: 3450, bidPx: 99.4975, askPx: 99.5050, askQty: 2900 },
+      { level: 'L5', bidQty: 5200, bidPx: 99.4960, askPx: 99.5065, askQty: 4800 },
+      { level: 'L6', bidQty: 7100, bidPx: 99.4950, askPx: 99.5079, askQty: 6300 },
+      { level: 'L7', bidQty: 9400, bidPx: 99.4935, askPx: 99.5090, askQty: 8900 },
+      { level: 'L8', bidQty: 12500, bidPx: 99.4910, askPx: 99.5105, askQty: 11800 },
+    ];
+
+    function renderBook() {
+      const tbody = document.getElementById('book-tbody');
+      tbody.innerHTML = '';
+      const maxBid = Math.max(...bookLevels.map(l => l.bidQty));
+      const maxAsk = Math.max(...bookLevels.map(l => l.askQty));
+
+      bookLevels.forEach(row => {
+        const tr = document.createElement('tr');
+        const bidPercent = Math.min(100, Math.round((row.bidQty / maxBid) * 100));
+        const askPercent = Math.min(100, Math.round((row.askQty / maxAsk) * 100));
+
+        tr.innerHTML = `
+          <td>${row.level}</td>
+          <td class="qty" style="position: relative;">
+            <div class="depth-bar-bid" style="width: ${bidPercent}%;"></div>
+            <span>${row.bidQty.toLocaleString()}</span>
+          </td>
+          <td class="row-bid px"><span>${row.bidPx.toFixed(4)}</span></td>
+          <td class="row-ask px"><span>${row.askPx.toFixed(4)}</span></td>
+          <td class="qty" style="position: relative;">
+            <div class="depth-bar-ask" style="width: ${askPercent}%;"></div>
+            <span>${row.askQty.toLocaleString()}</span>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const spread = (bestAsk - bestBid);
+      document.getElementById('lbl-best-bid').textContent = bestBid.toFixed(4);
+      document.getElementById('lbl-best-ask').textContent = bestAsk.toFixed(4);
+      document.getElementById('lbl-spread').textContent = spread.toFixed(4);
+      document.getElementById('metric-spread').innerHTML = `${spread.toFixed(4)} <span style="font-size: 1rem; font-weight: normal; color: var(--text-muted);">USD</span>`;
+      document.getElementById('metric-mid').textContent = ((bestBid + bestAsk) / 2).toFixed(4);
+    }
+
+    // Trade Tape Stream
+    function addTrade(side, price, qty) {
+      const tape = document.getElementById('trade-tape');
+      const now = new Date();
+      const timeStr = now.toTimeString().split(' ')[0] + '.' + String(now.getMilliseconds()).padStart(3, '0');
+      
+      const div = document.createElement('div');
+      div.className = `tape-row ${side.toLowerCase()}`;
+      div.innerHTML = `
+        <span class="tape-time">${timeStr}</span>
+        <span class="tape-side ${side.toLowerCase()}">${side}</span>
+        <span class="tape-qty">${qty.toLocaleString()} shs</span>
+        <span class="tape-price">$${price.toFixed(4)}</span>
+      `;
+
+      tape.prepend(div);
+      if (tape.children.length > 25) {
+        tape.removeChild(tape.lastChild);
+      }
+    }
+
+    // Canvas Latency Sparkline
+    const canvas = document.getElementById('latCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function drawChart() {
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Grid lines
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.lineWidth = 1;
+      for (let y = 20; y < h; y += 35) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      // 50 us threshold line
+      const thresholdY = h - (50 / 60) * h;
+      ctx.strokeStyle = 'rgba(255, 51, 102, 0.4)';
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(0, thresholdY);
+      ctx.lineTo(w, thresholdY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = 'rgba(255, 51, 102, 0.7)';
+      ctx.font = '10px JetBrains Mono';
+      ctx.fillText('50 µs P99 SLA LIMIT', 10, thresholdY - 4);
+
+      // Sparkline
+      ctx.beginPath();
+      const step = w / (latHistory.length - 1);
+      const maxVal = 60; // 60 us scale
+
+      latHistory.forEach((v, i) => {
+        const x = i * step;
+        const y = h - (Math.min(v, maxVal) / maxVal) * (h - 20) - 10;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+
+      ctx.strokeStyle = '#00f2fe';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Area fill
+      ctx.lineTo(w, h);
+      ctx.lineTo(0, h);
+      ctx.closePath();
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, 'rgba(0, 242, 254, 0.25)');
+      grad.addColorStop(1, 'rgba(0, 242, 254, 0.0)');
+      ctx.fillStyle = grad;
+      ctx.fill();
+    }
+
+    // Engine Simulation Loop
+    setInterval(() => {
+      if (!isRunning) return;
+
+      // Ingest counts
+      const batchSent = Math.round(targetTPS * 0.05);
+      const batchTrades = Math.round(batchSent * 0.78);
+      const batchVol = batchTrades * Math.floor(100 + Math.random() * 400);
+
+      totalSent += batchSent;
+      totalTrades += batchTrades;
+      totalVol += batchVol;
+
+      document.getElementById('metric-total-sent').textContent = totalSent.toLocaleString();
+      document.getElementById('metric-trades').innerHTML = `${totalTrades.toLocaleString()} <span style="font-size: 1rem; font-weight: normal; color: var(--text-muted);">trades</span>`;
+      document.getElementById('metric-vol').textContent = `${(totalVol / 1e6).toFixed(1)}M shares`;
+
+      // Fluctuate prices slightly
+      const delta = (Math.random() - 0.5) * 0.001;
+      bestBid = Math.max(90, bestBid + delta);
+      bestAsk = bestBid + 0.0015 + Math.random() * 0.0008;
+
+      bookLevels.forEach((l, idx) => {
+        l.bidPx = bestBid - idx * 0.001;
+        l.askPx = bestAsk + idx * 0.001;
+        l.bidQty = Math.max(100, l.bidQty + Math.floor((Math.random() - 0.5) * 300));
+        l.askQty = Math.max(100, l.askQty + Math.floor((Math.random() - 0.5) * 300));
+      });
+
+      renderBook();
+
+      // New latency datapoint
+      const isSpike = Math.random() < 0.04;
+      const newLat = isSpike ? (12 + Math.random() * 8) : (3.6 + Math.random() * 1.5);
+      latHistory.shift();
+      latHistory.push(newLat);
+      drawChart();
+
+      // Add tape item
+      const side = Math.random() > 0.5 ? 'BUY' : 'SELL';
+      const tradePx = side === 'BUY' ? bestAsk : bestBid;
+      const tradeQty = Math.floor(10 + Math.random() * 50) * 10;
+      addTrade(side, tradePx, tradeQty);
+
+    }, 50);
+
+    // Interactive functions
+    function toggleEngine() {
+      isRunning = !isRunning;
+      const btn = document.getElementById('btn-toggle');
+      if (isRunning) {
+        btn.textContent = '⏸ Pause Firehose';
+        btn.classList.remove('btn-danger');
+        btn.classList.add('btn-primary');
+      } else {
+        btn.textContent = '▶ Resume Firehose';
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-danger');
+      }
+    }
+
+    function injectShock() {
+      bestBid -= 0.15;
+      bestAsk += 0.25;
+      for (let i = 0; i < 5; i++) {
+        latHistory[latHistory.length - 1 - i] = 25.0 + Math.random() * 15;
+      }
+      addTrade('SELL', bestBid, 15000);
+      addTrade('SELL', bestBid - 0.02, 25000);
+      renderBook();
+      drawChart();
+    }
+
+    function resetStats() {
+      totalSent = 0;
+      totalTrades = 0;
+      totalVol = 0;
+      document.getElementById('metric-total-sent').textContent = '0';
+      document.getElementById('metric-trades').innerHTML = `0 <span style="font-size: 1rem; font-weight: normal; color: var(--text-muted);">trades</span>`;
+      document.getElementById('metric-vol').textContent = '0.0M shares';
+    }
+
+    function updateTargetTps(val) {
+      targetTPS = parseInt(val);
+      document.getElementById('slider-val').textContent = (targetTPS / 1000) + 'k/s';
+      document.getElementById('metric-tps').innerHTML = `${targetTPS.toLocaleString()} <span style="font-size: 1rem; font-weight: normal; color: var(--text-muted);">ord/s</span>`;
+    }
+
+    // Init
+    renderBook();
+    for (let i = 0; i < 8; i++) {
+      addTrade(i % 2 === 0 ? 'BUY' : 'SELL', 99.50 + i * 0.001, (i + 1) * 200);
+    }
+    drawChart();
+  </script>
+</body>
+</html>

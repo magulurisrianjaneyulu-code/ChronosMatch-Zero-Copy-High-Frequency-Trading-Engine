@@ -1,0 +1,526 @@
+ChronosMatch — Low-Latency HFT Matching Engine & Real-Time Dashboard
+
+1. Project Overview
+
+Project Name: ChronosMatch
+Project Type: High-Frequency Trading (HFT) Matching Engine
+Primary Goal: Build a low-latency order-matching engine with efficient memory communication, trade execution, performance monitoring, and a real-time web dashboard.
+
+ChronosMatch aims to process buy and sell orders efficiently using price-time priority, maintain a consistent order book, record executions, measure processing latency, and visualize engine activity through a monitoring dashboard.
+
+2. Project Objectives
+
+- Develop a reliable limit order matching engine.
+- Implement price-time priority order matching.
+- Support partial fills, cancellations, and order rejection.
+- Build an efficient order-book data structure.
+- Explore zero-copy inter-process communication (IPC).
+- Measure throughput and latency percentiles.
+- Develop a real-time dashboard for monitoring engine performance.
+- Implement automated testing and reproducible benchmarks.
+- Document architecture, technical challenges, and future optimizations.
+
+3. Technology Stack
+
+Backend and Engine
+
+- Python 3.12+
+- FastAPI
+- Uvicorn
+- SQLite
+- WebSockets
+- Python multiprocessing shared memory
+- Struct-based binary message encoding
+
+Data Structures and Performance
+
+- Dictionaries and deques
+- Integer price ticks and quantities
+- High-resolution timing with perf_counter_ns
+- Shared-memory ring buffer
+- Latency percentile analysis
+- Benchmarking and profiling
+
+Frontend and Visualization
+
+- React.js
+- Vite
+- Tailwind CSS
+- Recharts
+- HTML, CSS, and JavaScript
+
+Testing and Development
+
+- pytest
+- Git and GitHub
+- Visual Studio Code
+- Automated unit and integration tests
+
+4. Python Imports
+
+Core engine imports:
+
+from dataclasses import dataclass
+from enum import Enum
+from collections import deque
+from typing import Optional
+from time import perf_counter_ns
+from itertools import count
+from pathlib import Path
+import struct
+import sqlite3
+import statistics
+import logging
+
+Shared-memory IPC:
+
+from multiprocessing import shared_memory
+
+Backend API:
+
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+
+Testing:
+
+import pytest
+
+Install the API and testing dependencies:
+
+python -m pip install fastapi "uvicorn[standard]" pytest
+
+Note: Python standard-library modules do not require separate installation. React and its frontend dependencies must be installed in the dashboard directory.
+
+5. System Architecture
+
+Order Generator / Client
+|
+v
+Order Validation
+|
+v
+ChronosMatch Matching Engine
+|
++----> Order Book
+|
++----> Trade Execution
+|
++----> Trade Ledger
+|
++----> Metrics Collector
+|
+v
+Dashboard API
+|
+v
+WebSocket Feed
+|
+v
+ChronosMatch Dashboard
+
+Architecture Principles
+
+- Keep the matching engine independent of the user interface.
+- Process orders deterministically.
+- Keep disk I/O and dashboard rendering outside the matching hot path.
+- Publish monitoring events asynchronously.
+- Validate all incoming orders.
+- Measure performance instead of assuming improvements.
+- Protect order-book consistency and message integrity.
+
+6. Core Engine Features
+
+A. Order Management
+
+- Buy and sell limit orders.
+- Unique order IDs.
+- Order validation.
+- Order cancellation.
+- Rejected-order handling.
+- Order-state tracking.
+
+B. Matching Engine
+
+- Price-time priority.
+- Best-price matching.
+- Partial order fills.
+- Multiple executions for a single order.
+- Trade generation.
+- Deterministic execution sequence.
+
+C. Order Book
+
+- Bid and ask price levels.
+- FIFO queues at each price level.
+- Best bid and best ask.
+- Bid-ask spread.
+- Market depth.
+- Pending order quantities.
+
+D. Trade Ledger
+
+- Trade IDs.
+- Execution price.
+- Executed quantity.
+- Buyer and seller order references.
+- Execution timestamps.
+- Audit and reconciliation records.
+
+E. Zero-Copy IPC
+
+- Shared-memory communication.
+- Binary message formats.
+- Producer-consumer coordination.
+- Ring-buffer management.
+- Buffer wraparound testing.
+- Synchronization and message-integrity checks.
+
+Important: Shared memory alone does not guarantee zero-copy operation. The implementation must avoid unnecessary payload copies and verify the behavior through testing.
+
+F. Performance Monitoring
+
+- Orders processed per second.
+- Trades executed per second.
+- p50 latency.
+- p95 latency.
+- p99 latency.
+- Maximum observed latency.
+- Pending orders.
+- IPC buffer utilization.
+- Error and rejection counts.
+
+7. Dashboard Design
+
+Create a professional dark-themed trading dashboard.
+
+Page 1: Overview
+
+Display:
+
+- Orders processed.
+- Trades executed.
+- Open orders.
+- Orders per second.
+- Trades per second.
+- p50, p95, and p99 latency.
+- Engine status.
+
+Page 2: Order Book
+
+Display:
+
+- Bid prices and quantities.
+- Ask prices and quantities.
+- Best bid and best ask.
+- Bid-ask spread.
+- Market depth visualization.
+
+Page 3: Recent Trades
+
+Display:
+
+- Trade ID.
+- Execution price.
+- Executed quantity.
+- Buyer and seller order IDs.
+- Timestamp.
+
+Page 4: Performance
+
+Display:
+
+- Throughput time-series chart.
+- Latency time-series chart.
+- Latency percentile comparison.
+- Benchmark summaries.
+- CPU and memory usage where available.
+
+Page 5: System Monitoring
+
+Display:
+
+- Engine health.
+- WebSocket connection status.
+- IPC status.
+- Error logs.
+- Buffer utilization.
+- Last update timestamp.
+
+Dashboard Design Principles
+
+- Use a dark navy background.
+- Use readable typography and consistent spacing.
+- Use green for buy-side information and red for sell-side information.
+- Display measured values rather than fabricated live metrics.
+- Provide connection indicators and loading states.
+- Make the interface responsive for mobile and desktop.
+- Keep dashboard updates from blocking order processing.
+
+8. Two-Week Development Roadmap
+
+Week 1 — Core Engine Development
+
+Day 1: Project Setup
+
+- Create the project repository.
+- Set up the Python environment.
+- Install dependencies.
+- Organize project folders.
+- Document the system architecture.
+
+Deliverable: A working development environment.
+
+Day 2: Order Models
+
+- Create Order, Trade, and Side models.
+- Define order IDs and sequence numbers.
+- Validate prices and quantities.
+- Define order-state transitions.
+
+Deliverable: Order models and validation tests.
+
+Day 3: Order Book
+
+- Implement bid and ask price levels.
+- Add FIFO queues.
+- Implement best-bid and best-ask queries.
+- Track pending quantities.
+
+Deliverable: Functional order book.
+
+Day 4: Matching Engine
+
+- Implement price-time priority.
+- Support partial fills.
+- Support multiple executions.
+- Implement cancellations and rejections.
+
+Deliverable: Core matching engine.
+
+Day 5: Trade Ledger
+
+- Record trade executions.
+- Add SQLite persistence.
+- Reconcile order and trade quantities.
+- Test execution records.
+
+Deliverable: Trade tracking and audit support.
+
+Day 6: Testing
+
+- Write unit tests.
+- Test matching edge cases.
+- Test cancellations and partial fills.
+- Validate order-book consistency.
+
+Deliverable: Initial automated test suite.
+
+Day 7: Week 1 Review
+
+- Run the engine simulation.
+- Review architecture and code quality.
+- Document known issues.
+- Record baseline results.
+
+Deliverable: Core engine review report.
+
+Week 2 — IPC, Performance, and Dashboard
+
+Day 8: Shared-Memory IPC
+
+- Design a binary message format.
+- Implement shared-memory transport.
+- Define producer-consumer coordination.
+- Validate message boundaries.
+
+Deliverable: Initial IPC implementation.
+
+Day 9: IPC Testing
+
+- Test buffer wraparound.
+- Test message integrity.
+- Test synchronization.
+- Test startup and shutdown.
+- Investigate loss and duplication risks.
+
+Deliverable: IPC test results.
+
+Day 10: Metrics Collection
+
+- Measure order-processing duration.
+- Calculate latency percentiles.
+- Measure throughput.
+- Collect trade and order statistics.
+
+Deliverable: Metrics collector and benchmark runner.
+
+Day 11: Backend API
+
+- Create FastAPI application.
+- Expose read-only metrics endpoints.
+- Add order-book and recent-trade endpoints.
+- Implement WebSocket updates.
+
+Deliverable: Backend API.
+
+Day 12: Frontend Dashboard
+
+- Set up React and Vite.
+- Configure Tailwind CSS.
+- Build overview KPI cards.
+- Add order-book and recent-trade panels.
+- Add performance charts.
+
+Deliverable: Dashboard prototype.
+
+Day 13: Integration
+
+- Connect the frontend to the backend.
+- Display live engine metrics.
+- Handle connection failures.
+- Test stale-data indicators.
+- Verify that displayed counts match backend state.
+
+Deliverable: Integrated monitoring dashboard.
+
+Day 14: Final Validation
+
+- Run repeatable benchmark workloads.
+- Validate engine correctness.
+- Record throughput and latency.
+- Fix critical bugs.
+- Capture screenshots.
+- Update README documentation.
+
+Deliverable: Two-week project review package.
+
+9. Recommended Project Folder Structure
+
+ChronosMatch/
+├── engine/
+│   ├── order.py
+│   ├── order_book.py
+│   ├── matching_engine.py
+│   └── trade.py
+├── ipc/
+│   ├── shared_memory.py
+│   └── ring_buffer.py
+├── monitoring/
+│   ├── metrics.py
+│   └── benchmark.py
+├── backend/
+│   ├── main.py
+│   ├── api.py
+│   └── websocket.py
+├── dashboard/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   └── App.jsx
+│   └── package.json
+├── tests/
+│   ├── test_matching_engine.py
+│   ├── test_order_book.py
+│   └── test_ipc.py
+├── requirements.txt
+├── README.md
+└── .gitignore
+
+10. Benchmarking Strategy
+
+Run repeatable workloads with different order volumes, such as:
+
+- 10,000 orders.
+- 100,000 orders.
+- 1,000,000 orders, subject to available resources.
+
+Measure:
+
+- Total orders processed.
+- Total trades executed.
+- Orders per second.
+- Trades per second.
+- p50 latency.
+- p95 latency.
+- p99 latency.
+- Maximum latency.
+- CPU and memory consumption.
+
+Use the same workload and environment when comparing different implementations.
+
+Report whether latency includes only the matching operation or the complete order-to-response path. Keep the two measurements separate.
+
+Do not claim a performance target has been achieved until the benchmark has actually run.
+
+11. Testing and Reliability Checklist
+
+- [ ] Matching tests pass.
+- [ ] Price-time priority is correct.
+- [ ] Partial fills are correct.
+- [ ] Cancellation behavior is correct.
+- [ ] Order-book quantities reconcile.
+- [ ] Trade records reconcile with executions.
+- [ ] IPC messages remain valid during wraparound.
+- [ ] Synchronization tests pass.
+- [ ] Benchmark results are reproducible.
+- [ ] Dashboard displays actual backend data.
+- [ ] WebSocket reconnection works.
+- [ ] README contains setup instructions and screenshots.
+
+12. Mid-Week Mentor Review
+
+Work Reviewed
+
+- Project architecture.
+- Core order-matching logic.
+- Order-book implementation.
+- IPC and performance-monitoring approach.
+- Dashboard integration progress.
+
+Potential Blockers
+
+- Matching-engine edge cases.
+- Shared-memory synchronization.
+- Inconsistent benchmark results.
+- Backend-to-dashboard integration issues.
+- Performance overhead from serialization and logging.
+
+Corrective Actions
+
+- Expand unit and integration tests.
+- Profile the engine before optimization.
+- Separate matching latency from end-to-end latency.
+- Validate IPC message integrity.
+- Ensure dashboard metrics are derived from real engine state.
+
+These are proposed review items. Record only the blockers that actually occurred.
+
+13. Future Enhancements
+
+- C++ or Rust matching-engine implementation.
+- Cython optimization for selected Python components.
+- More efficient memory layouts.
+- Improved lock-free or low-contention IPC, where justified.
+- Deterministic replay and recovery.
+- Advanced performance profiling.
+- Additional order types.
+- More detailed market-depth visualization.
+- Comprehensive stress and soak testing.
+
+14. Definition of Done
+
+The initial ChronosMatch milestone is complete when:
+
+1. The engine processes valid orders correctly.
+2. Matching and cancellation tests pass.
+3. Trade records and order-book state reconcile.
+4. IPC behavior is tested and documented.
+5. Benchmark measurements are reproducible.
+6. The dashboard displays real engine metrics.
+7. Critical errors are handled and logged.
+8. Setup instructions and architecture documentation are available.
+
+Conclusion
+
+ChronosMatch combines order matching, efficient inter-process communication, performance measurement, and real-time monitoring in a single project. The development strategy prioritizes correctness first, observability second, and measured optimization third.
+
+The two-week roadmap provides a structured path from the initial engine implementation to a connected dashboard and a review-ready benchmark report. Production-grade HFT performance remains a separate engineering milestone requiring rigorous profiling, testing, and validation.

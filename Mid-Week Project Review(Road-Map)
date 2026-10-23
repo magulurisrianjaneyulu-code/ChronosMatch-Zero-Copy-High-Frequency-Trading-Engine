@@ -1,0 +1,25 @@
+ChronosMatch Engine — Two-Week Mid-Week Project Review
+
+I'm working on ChronosMatch: Zero-Copy High-Frequency Trading Engine, a project focused on low-latency order matching, efficient memory communication, and real-time performance monitoring.
+
+🔹 Week 1: Core Engine Development
+
+- Designed the engine architecture and order-processing workflow.
+- Worked on price-time priority matching and order-book management.
+- Focused on trade execution, partial fills, and cancellation handling.
+- Worked on trade tracking and initial testing.
+
+🔹 Week 2: Performance & Dashboard
+
+- Explored zero-copy inter-process communication (IPC).
+- Focused on throughput and latency monitoring.
+- Planned dashboard visualizations for orders, trades, and order-book activity.
+- Focused on integration, testing, and performance analysis.
+
+🛠️ Tech Stack: Python | Shared Memory | SQLite | WebSockets | Real-Time Monitoring | Performance Benchmarking
+
+🎯 Next Steps: Optimize latency, improve IPC efficiency, expand test coverage, and enhance dashboard visualization.
+
+This project is helping me strengthen my knowledge of systems programming, performance engineering, and trading-system architecture.
+
+#ChronosMatch #Python #HighFrequencyTrading #LowLatency #SystemDesign #SoftwareEngineering #OpenSource #DeveloperJourney #GitHub

@@ -1,0 +1,3 @@
+.Review bench/engine_verify.py.
+.Test deterministic matching results.
+.Add or improve tests for invalid orders and boundary cases where appropriate.

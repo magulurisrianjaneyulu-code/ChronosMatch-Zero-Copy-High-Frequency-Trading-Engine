@@ -1,0 +1,3 @@
+.Review bench/ipc_audit.py.
+Compare binary transfer with JSON and pickle serialization.
+.record measured throughput and latency results.

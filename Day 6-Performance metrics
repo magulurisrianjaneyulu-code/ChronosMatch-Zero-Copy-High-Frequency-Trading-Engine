@@ -1,0 +1,3 @@
+.Review core/metrics.py.
+.Inspect latency measurements and throughput counters.
+.Test metric snapshots and output accuracy.

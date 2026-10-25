@@ -1,0 +1,3 @@
+.Review core/firehose.py.
+.Test configuration order generation and run duration.
+.Verify sent,dropped,and throughput counters in core/metrics.py.

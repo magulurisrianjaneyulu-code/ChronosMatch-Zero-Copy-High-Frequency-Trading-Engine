@@ -1,0 +1,3 @@
+.Review core/order_struct.py and core/constants.py.
+Verify order ID,price,quantity,and side fields.
+Test packing and unpacking for buy and sell orders.

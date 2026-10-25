@@ -1,0 +1,3 @@
+.Review ui/dashboard.py.
+.Verify duration and target throughput settings.
+.Improve the display of order counts and performance metrices where needed.

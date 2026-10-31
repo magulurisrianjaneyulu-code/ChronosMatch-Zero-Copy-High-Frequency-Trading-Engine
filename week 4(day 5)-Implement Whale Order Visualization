@@ -1,0 +1,15 @@
+Task: Implement Whale Order Visualization
+
+1. Create a module named whale_detector.py.
+2. Define a configurable large-order quantity threshold.
+3. Identify unusually large Buy orders.
+4. Identify unusually large Sell orders.
+5. Track large orders across multiple price levels.
+6. Detect large incoming orders consuming multiple price levels.
+7. Record Whale Order execution details.
+8. Highlight large-order events in the curses dashboard.
+9. Display execution price and quantity.
+10. Test with different large-order scenarios.
+
+Expected Result:
+Whale Order detection and visualization with real-time highlighting of large trades and multiple price-level executions.

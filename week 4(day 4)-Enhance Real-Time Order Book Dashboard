@@ -1,0 +1,16 @@
+Task: Enhance Real-Time Order Book Dashboard
+
+1. Open the existing dashboard.py module.
+2. Import the Python curses library.
+3. Display the best Buy price (Bid).
+4. Display the best Sell price (Ask).
+5. Calculate and display the Bid-Ask spread.
+6. Display available order quantities.
+7. Show executed trade information.
+8. Display real-time order book updates.
+9. Implement continuous terminal screen refreshing.
+10. Improve dashboard formatting and readability.
+11. Test the dashboard with live simulated orders.
+
+Expected Result:
+An enhanced real-time terminal dashboard displaying live Bid/Ask prices, spread, order quantities and trade execution information.

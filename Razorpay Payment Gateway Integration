@@ -1,0 +1,10 @@
+Razorpay Payment Gateway Integration
+
+- Integrated the official Razorpay Checkout payment gateway.
+- Implemented secure server-side payment order creation.
+- Added Razorpay payment signature verification.
+- Integrated payment success and failure handling.
+- Added secure environment variable configuration.
+- Implemented payment record storage in SQLite.
+- Added duplicate payment prevention and webhook verification.
+- Tested payment workflows using Razorpay Test Mode

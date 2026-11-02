@@ -1,0 +1,9 @@
+Subscription and Payment Management System
+
+- Developed configurable subscription and access plans.
+- Implemented payment status tracking.
+- Added user-specific transaction history.
+- Integrated verified payment records with the dashboard.
+- Implemented payment status notifications.
+- Added subscription access validation where applicable.
+- Improved payment data consistency and account-level authorization.

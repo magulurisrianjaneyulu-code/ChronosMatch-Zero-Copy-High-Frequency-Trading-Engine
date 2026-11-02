@@ -1,0 +1,13 @@
+# HFT Engine - Core Python Dependencies
+sortedcontainers>=2.4.0
+fastapi>=0.110.0
+uvicorn>=0.28.0
+requests>=2.31.0
+razorpay>=2.0.1
+pydantic>=2.0.0
+
+# Optional: compile Cython LOB for sub-microsecond latency
+# cython>=3.0
+
+# Optional: test runner
+# pytest>=7.0

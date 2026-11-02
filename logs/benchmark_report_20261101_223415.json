@@ -1,0 +1,23 @@
+{
+  "generated_at": "2026-11-01T22:34:15.751968+00:00",
+  "benchmarks": [
+    {
+      "workload_orders": 10000,
+      "elapsed_seconds": 0.1905,
+      "orders_per_sec": 52487.49,
+      "total_trades": 7928,
+      "trades_per_sec": 41612.08,
+      "total_volume": 1285720,
+      "avg_latency_us": 17.161,
+      "p50_latency_us": 9.5,
+      "p90_latency_us": 29.2,
+      "p95_latency_us": 41.2,
+      "p99_latency_us": 88.3,
+      "p999_latency_us": 240.9,
+      "min_latency_us": 5.7,
+      "max_latency_us": 424.1,
+      "gc_collection_events": 10682,
+      "sub_50us_compliant": false
+    }
+  ]
+}

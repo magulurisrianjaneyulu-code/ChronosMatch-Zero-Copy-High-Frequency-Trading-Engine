@@ -1,0 +1,5 @@
+workload_orders,elapsed_seconds,orders_per_sec,total_trades,trades_per_sec,total_volume,avg_latency_us,p50_latency_us,p90_latency_us,p95_latency_us,p99_latency_us,p999_latency_us,min_latency_us,max_latency_us,gc_collection_events,sub_50us_compliant
+1000,0.0109,91875.45,767,70468.47,133290,9.919,6.5,16.8,22.1,42.0,648.7,5.0,648.7,0,True
+10000,0.1182,84621.63,7928,67088.03,1285720,10.729,7.6,18.2,25.2,43.3,150.2,5.0,627.7,0,True
+100000,1.8236,54835.77,78163,42861.28,12635070,16.638,9.4,28.5,43.3,93.9,229.2,5.5,2105.2,0,False
+1000000,26.2251,38131.37,779523,29724.28,125451760,23.874,17.6,41.4,59.6,128.0,394.0,5.3,164647.9,0,False

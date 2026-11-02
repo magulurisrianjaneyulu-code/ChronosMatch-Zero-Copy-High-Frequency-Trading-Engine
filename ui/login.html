@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChronosMatch Pro – 3D Quantum Trading Desk Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Three.js 3D WebGL Library for Premium 3D Objects -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <style>
+    :root {
+      --bg-base: #030712;
+      --bg-card: rgba(10, 16, 31, 0.88);
+      --bg-card-blur: blur(24px);
+      --bg-input: rgba(5, 10, 22, 0.85);
+      --border-hud: rgba(0, 242, 254, 0.35);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-focus: #00f2fe;
+      --accent-cyan: #00f2fe;
+      --accent-blue: #4facfe;
+      --accent-green: #00e676;
+      --accent-gold: #ffd166;
+      --accent-purple: #a855f7;
+      --accent-red: #ff3366;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --font-display: 'Outfit', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-display);
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    /* 3D WebGL Canvas Viewport */
+    #canvas3d {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Ambient Lighting Glows */
+    .glow-accent {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(140px);
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0.18;
+    }
+    .glow-1 { width: 550px; height: 550px; background: #00f2fe; top: -180px; left: -180px; }
+    .glow-2 { width: 500px; height: 500px; background: #7928ca; bottom: -180px; right: -180px; }
+
+    /* Main Container */
+    .terminal-container {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 540px;
+      padding: 24px 20px;
+    }
+
+    /* Glassmorphic Cyber HUD Card */
+    .hud-card {
+      background: var(--bg-card);
+      backdrop-filter: var(--bg-card-blur);
+      -webkit-backdrop-filter: var(--bg-card-blur);
+      border: 1px solid var(--border-hud);
+      border-radius: 18px;
+      padding: 34px 30px;
+      box-shadow: 
+        0 24px 60px rgba(0, 0, 0, 0.85),
+        0 0 35px rgba(0, 242, 254, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .hud-card:hover {
+      border-color: rgba(0, 242, 254, 0.55);
+      box-shadow: 
+        0 24px 60px rgba(0, 0, 0, 0.85),
+        0 0 45px rgba(0, 242, 254, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    }
+
+    /* Corner Accents */
+    .hud-card::before, .hud-card::after {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      pointer-events: none;
+    }
+    .hud-card::before {
+      top: 10px; left: 10px;
+      border-top: 2px solid var(--accent-cyan);
+      border-left: 2px solid var(--accent-cyan);
+    }
+    .hud-card::after {
+      bottom: 10px; right: 10px;
+      border-bottom: 2px solid var(--accent-cyan);
+      border-right: 2px solid var(--accent-cyan);
+    }
+
+    /* Top Status Ribbon */
+    .hud-ribbon {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 22px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+      font-family: var(--font-mono);
+      font-size: 0.70rem;
+    }
+    .ribbon-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 9px;
+      border-radius: 4px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+    .badge-cyan { background: rgba(0, 242, 254, 0.12); color: var(--accent-cyan); border: 1px solid rgba(0, 242, 254, 0.3); }
+    .badge-green { background: rgba(0, 230, 118, 0.12); color: var(--accent-green); border: 1px solid rgba(0, 230, 118, 0.3); }
+
+    /* Brand Header */
+    .brand-header {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .brand-logo-3d {
+      width: 56px; height: 56px;
+      background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 24px rgba(0, 242, 254, 0.45);
+      margin-bottom: 12px;
+      animation: pulse-glow 3s infinite alternate;
+    }
+    @keyframes pulse-glow {
+      0% { box-shadow: 0 0 15px rgba(0, 242, 254, 0.3); transform: scale(1); }
+      100% { box-shadow: 0 0 30px rgba(0, 242, 254, 0.7); transform: scale(1.03); }
+    }
+    .brand-logo-3d svg { width: 32px; height: 32px; fill: #030712; }
+    .brand-title {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #ffffff 30%, #00f2fe 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand-tagline {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      margin-top: 4px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* Tabs */
+    .tabs-nav {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: rgba(4, 8, 18, 0.8);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 24px;
+      gap: 6px;
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      font-size: 0.80rem;
+      font-weight: 700;
+      padding: 9px 12px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      text-align: center;
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, rgba(0, 242, 254, 0.2) 0%, rgba(79, 172, 254, 0.15) 100%);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(0, 242, 254, 0.35);
+      box-shadow: 0 0 12px rgba(0, 242, 254, 0.2);
+    }
+
+    /* Forms */
+    .form-group {
+      margin-bottom: 16px;
+      position: relative;
+    }
+    .form-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.74rem;
+      font-family: var(--font-mono);
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .input-icon {
+      position: absolute;
+      left: 14px;
+      color: var(--accent-cyan);
+      font-size: 0.95rem;
+      pointer-events: none;
+      opacity: 0.75;
+    }
+    .form-input {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 12px 14px 12px 40px;
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 0.86rem;
+      transition: all 0.25s ease;
+    }
+    .form-input:focus {
+      outline: none;
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 16px rgba(0, 242, 254, 0.25);
+      background: rgba(5, 12, 28, 0.95);
+    }
+    .toggle-pwd {
+      position: absolute;
+      right: 12px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 4px;
+      transition: color 0.2s;
+    }
+    .toggle-pwd:hover { color: var(--accent-cyan); }
+
+    /* Checkbox & Forgot Links */
+    .form-extras {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      font-size: 0.78rem;
+    }
+    .remember-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+    }
+    .remember-label input[type="checkbox"] {
+      accent-color: var(--accent-cyan);
+      width: 15px; height: 15px;
+      cursor: pointer;
+    }
+    .link-cyan {
+      color: var(--accent-cyan);
+      text-decoration: none;
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .link-cyan:hover { text-decoration: underline; opacity: 0.9; }
+
+    /* Action Buttons */
+    .btn-submit {
+      width: 100%;
+      background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+      border: none;
+      color: #030712;
+      font-family: var(--font-mono);
+      font-size: 0.92rem;
+      font-weight: 800;
+      padding: 13px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 0 20px rgba(0, 242, 254, 0.35);
+      letter-spacing: 0.02em;
+    }
+    .btn-submit:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 0 30px rgba(0, 242, 254, 0.6);
+    }
+    .btn-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Alerts */
+    .alert-box {
+      display: none;
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 0.80rem;
+      font-family: var(--font-mono);
+      margin-bottom: 16px;
+      line-height: 1.4;
+      animation: fadeIn 0.3s ease;
+    }
+    .alert-error {
+      background: rgba(255, 51, 102, 0.12);
+      border: 1px solid rgba(255, 51, 102, 0.4);
+      color: #ff4d79;
+    }
+    .alert-success {
+      background: rgba(0, 230, 118, 0.12);
+      border: 1px solid rgba(0, 230, 118, 0.4);
+      color: #00e676;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Institutional Demo Profiles */
+    .demo-profiles {
+      margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border-subtle);
+    }
+    .demo-title {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .demo-chip {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 8px 6px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+    .demo-chip:hover {
+      background: rgba(0, 242, 254, 0.08);
+      border-color: rgba(0, 242, 254, 0.4);
+      transform: translateY(-1px);
+    }
+    .demo-name { font-size: 0.72rem; font-weight: 700; color: #fff; }
+    .demo-role { font-size: 0.60rem; color: var(--accent-cyan); font-family: var(--font-mono); margin-top: 2px; }
+
+    /* Modals for OTP & Forgot Password */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(2, 5, 14, 0.85);
+      backdrop-filter: blur(12px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-card {
+      background: #090f1f;
+      border: 1px solid var(--accent-cyan);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 440px;
+      padding: 28px 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(0, 242, 254, 0.25);
+      position: relative;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .modal-title { font-size: 1.1rem; font-weight: 800; color: #fff; }
+    .modal-close {
+      background: transparent; border: none; color: var(--text-muted);
+      font-size: 1.3rem; cursor: pointer;
+    }
+    .modal-close:hover { color: #fff; }
+
+    /* OTP Inputs */
+    .otp-inputs {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin: 18px 0;
+    }
+    .otp-box {
+      width: 46px; height: 52px;
+      text-align: center;
+      font-size: 1.3rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      background: rgba(4, 8, 17, 0.9);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      color: var(--accent-cyan);
+    }
+    .otp-box:focus {
+      outline: none;
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 12px rgba(0, 242, 254, 0.35);
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(3, 7, 18, 0.25);
+      border-top-color: #030712;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 600px) {
+      .terminal-container { padding: 12px; }
+      .hud-card { padding: 24px 18px; }
+      .demo-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 3D WebGL Three.js Holographic Viewport -->
+  <div id="canvas3d"></div>
+
+  <!-- Ambient Glow Accents -->
+  <div class="glow-accent glow-1"></div>
+  <div class="glow-accent glow-2"></div>
+
+  <div class="terminal-container">
+    <div class="hud-card">
+      
+      <!-- Top Status Ribbon -->
+      <div class="hud-ribbon">
+        <div class="ribbon-badge badge-cyan">
+          <span>⚡ ZERO-COPY IPC</span>
+        </div>
+        <div class="ribbon-badge badge-green">
+          <span>● SUB-50µs SLA ACTIVE</span>
+        </div>
+      </div>
+
+      <!-- Brand Header -->
+      <div class="brand-header">
+        <div class="brand-logo-3d">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <div class="brand-title">CHRONOSMATCH</div>
+        <div class="brand-tagline">Institutional High-Frequency Trading Desk</div>
+      </div>
+
+      <!-- Tab Switcher -->
+      <div class="tabs-nav">
+        <button class="tab-btn active" id="tab-login-btn" onclick="switchTab('login')">
+          🔑 TRADER SIGN IN
+        </button>
+        <button class="tab-btn" id="tab-register-btn" onclick="switchTab('register')">
+          ⚡ INSTITUTIONAL REGISTRATION
+        </button>
+      </div>
+
+      <!-- Alert Message Box -->
+      <div class="alert-box alert-error" id="auth-alert-error"></div>
+      <div class="alert-box alert-success" id="auth-alert-success"></div>
+
+      <!-- ================= LOGIN TAB ================= -->
+      <div id="view-login">
+        <form id="form-login" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <div class="form-label">
+              <span>TRADER IDENTIFIER</span>
+              <span style="color: var(--accent-cyan); font-size: 0.68rem;">EMAIL OR USERNAME</span>
+            </div>
+            <div class="input-wrapper">
+              <span class="input-icon">👤</span>
+              <input type="text" id="login-identifier" class="form-input" placeholder="e.g. alex or trader@chronosmatch.hft" required autocomplete="username">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="form-label">
+              <span>CIPHER KEY</span>
+              <span style="color: var(--text-muted); font-size: 0.68rem;">MIN 6 CHARACTERS</span>
+            </div>
+            <div class="input-wrapper">
+              <span class="input-icon">🔒</span>
+              <input type="password" id="login-password" class="form-input" placeholder="••••••••••••" required autocomplete="current-password">
+              <button type="button" class="toggle-pwd" onclick="togglePasswordVisibility('login-password')">👁️</button>
+            </div>
+          </div>
+
+          <div class="form-extras">
+            <label class="remember-label">
+              <input type="checkbox" id="remember-me" checked>
+              <span>Remember Session (24h)</span>
+            </label>
+            <span class="link-cyan" onclick="openForgotPasswordModal()">Forgot Cipher?</span>
+          </div>
+
+          <button type="submit" class="btn-submit" id="btn-login">
+            <span class="spinner" id="login-spinner"></span>
+            <span id="login-text">AUTHENTICATE & ENTER DESK</span>
+          </button>
+        </form>
+
+        <!-- Quick Demo Profiles -->
+        <div class="demo-profiles">
+          <div class="demo-title">⚡ Instant Institutional Demo Access</div>
+          <div class="demo-grid">
+            <div class="demo-chip" onclick="quickFillDemo('alex', 'chronos2026')">
+              <div class="demo-name">Alex Vance</div>
+              <div class="demo-role">Lead Trader</div>
+            </div>
+            <div class="demo-chip" onclick="quickFillDemo('sarah', 'cython2026')">
+              <div class="demo-name">Dr. Chen</div>
+              <div class="demo-role">Cython Arch</div>
+            </div>
+            <div class="demo-chip" onclick="quickFillDemo('marcus', 'ledger2026')">
+              <div class="demo-name">Marcus Reed</div>
+              <div class="demo-role">Audit & Risk</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= REGISTRATION TAB ================= -->
+      <div id="view-register" style="display: none;">
+        <form id="form-register" onsubmit="handleRegister(event)">
+          <div class="form-group">
+            <div class="form-label"><span>FULL LEGAL NAME</span></div>
+            <div class="input-wrapper">
+              <span class="input-icon">👤</span>
+              <input type="text" id="reg-name" class="form-input" placeholder="e.g. Gopi V" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="form-label"><span>INSTITUTIONAL EMAIL</span></div>
+            <div class="input-wrapper">
+              <span class="input-icon">✉️</span>
+              <input type="email" id="reg-email" class="form-input" placeholder="trader@firm.com" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="form-label"><span>PHONE NUMBER</span></div>
+            <div class="input-wrapper">
+              <span class="input-icon">📱</span>
+              <input type="tel" id="reg-phone" class="form-input" placeholder="+91 98765 43210" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="form-label"><span>CREATE PASSWORD</span></div>
+            <div class="input-wrapper">
+              <span class="input-icon">🔒</span>
+              <input type="password" id="reg-password" class="form-input" placeholder="Minimum 6 characters" minlength="6" required>
+              <button type="button" class="toggle-pwd" onclick="togglePasswordVisibility('reg-password')">👁️</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="form-label"><span>CONFIRM PASSWORD</span></div>
+            <div class="input-wrapper">
+              <span class="input-icon">🛡️</span>
+              <input type="password" id="reg-confirm" class="form-input" placeholder="Confirm password" minlength="6" required>
+              <button type="button" class="toggle-pwd" onclick="togglePasswordVisibility('reg-confirm')">👁️</button>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 18px;">
+            <label class="remember-label">
+              <input type="checkbox" id="reg-terms" required>
+              <span>I agree to Institutional HFT Terms & Razorpay Settlements</span>
+            </label>
+          </div>
+
+          <button type="submit" class="btn-submit" id="btn-register">
+            <span class="spinner" id="reg-spinner"></span>
+            <span id="reg-text">CREATE QUANTITATIVE ACCOUNT</span>
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= EMAIL VERIFICATION MODAL ================= -->
+  <div class="modal-overlay" id="modal-otp">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">🔐 Verify Trader Email OTP</div>
+        <button class="modal-close" onclick="closeModal('modal-otp')">&times;</button>
+      </div>
+      <div style="font-size: 0.80rem; color: var(--text-secondary); line-height: 1.4;">
+        A 6-digit cryptographic verification code has been dispatched to:
+        <b style="color: var(--accent-cyan);" id="otp-target-email">trader@firm.com</b>
+      </div>
+
+      <div id="otp-code-hint" style="background: rgba(0, 230, 118, 0.1); border: 1px solid rgba(0, 230, 118, 0.3); padding: 8px 12px; border-radius: 8px; margin: 10px 0; font-size: 0.80rem; color: #fff; text-align: center; display: none;"></div>
+
+      <div class="otp-inputs">
+        <input type="text" maxlength="1" class="otp-box" id="otp-1" oninput="moveOtp(this, 'otp-2')" onkeydown="handleOtpKey(event, null, 'otp-2')" onpaste="handleOtpPaste(event)">
+        <input type="text" maxlength="1" class="otp-box" id="otp-2" oninput="moveOtp(this, 'otp-3')" onkeydown="handleOtpKey(event, 'otp-1', 'otp-3')" onpaste="handleOtpPaste(event)">
+        <input type="text" maxlength="1" class="otp-box" id="otp-3" oninput="moveOtp(this, 'otp-4')" onkeydown="handleOtpKey(event, 'otp-2', 'otp-4')" onpaste="handleOtpPaste(event)">
+        <input type="text" maxlength="1" class="otp-box" id="otp-4" oninput="moveOtp(this, 'otp-5')" onkeydown="handleOtpKey(event, 'otp-3', 'otp-5')" onpaste="handleOtpPaste(event)">
+        <input type="text" maxlength="1" class="otp-box" id="otp-5" oninput="moveOtp(this, 'otp-6')" onkeydown="handleOtpKey(event, 'otp-4', 'otp-6')" onpaste="handleOtpPaste(event)">
+        <input type="text" maxlength="1" class="otp-box" id="otp-6" oninput="moveOtp(this, null)" onkeydown="handleOtpKey(event, 'otp-5', null)" onpaste="handleOtpPaste(event)">
+      </div>
+
+      <div class="alert-box alert-error" id="otp-error" style="display: none;"></div>
+      <div class="alert-box alert-success" id="otp-success" style="display: none;"></div>
+
+      <button class="btn-submit" onclick="submitOtpVerification()" id="btn-otp-submit">
+        VERIFY OTP & ACTIVATE
+      </button>
+
+      <div style="text-align: center; margin-top: 14px;">
+        <span class="link-cyan" onclick="resendOtp()">🔄 Resend Code</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= FORGOT PASSWORD MODAL ================= -->
+  <div class="modal-overlay" id="modal-forgot">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">🔑 Reset Institutional Cipher</div>
+        <button class="modal-close" onclick="closeModal('modal-forgot')">&times;</button>
+      </div>
+
+      <div id="forgot-step-1">
+        <div style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 14px;">
+          Enter your registered institutional email or username to generate a secure reset token.
+        </div>
+        <div class="form-group">
+          <input type="text" id="forgot-identifier" class="form-input" placeholder="e.g. trader@firm.com or alex">
+        </div>
+        <button class="btn-submit" onclick="requestPasswordReset()">REQUEST RESET TOKEN</button>
+      </div>
+
+      <div id="forgot-step-2" style="display: none;">
+        <div style="font-size: 0.78rem; color: var(--accent-green); margin-bottom: 14px;">
+          Reset token generated! Enter your new password below.
+        </div>
+        <div class="form-group">
+          <input type="text" id="reset-token-input" class="form-input" placeholder="Reset Token" readonly>
+        </div>
+        <div class="form-group">
+          <input type="password" id="reset-new-password" class="form-input" placeholder="New Password (min 6 chars)">
+        </div>
+        <button class="btn-submit" onclick="submitPasswordReset()">SET NEW PASSWORD</button>
+      </div>
+
+      <div class="alert-box alert-error" id="forgot-error" style="display: none; margin-top: 12px;"></div>
+      <div class="alert-box alert-success" id="forgot-success" style="display: none; margin-top: 12px;"></div>
+    </div>
+  </div>
+
+  <!-- ================= THREE.JS 3D SCENE SCRIPT ================= -->
+  <script>
+    let scene, camera, renderer, polyhedron, particleGeo, particleSystem, rings = [];
+    let mouseX = 0, mouseY = 0;
+
+    function init3D() {
+      const container = document.getElementById('canvas3d');
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      // 1. Scene & Perspective Camera
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(55, width / height, 0.1, 1000);
+      camera.position.z = 24;
+
+      // 2. WebGL Renderer with High Precision & Antialiasing
+      renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "high-performance" });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      // 3. Central 3D Quantum Polyhedron (Icosahedron + Wireframe)
+      const geom = new THREE.IcosahedronGeometry(7, 1);
+      const wireMat = new THREE.MeshBasicMaterial({
+        color: 0x00f2fe,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.35,
+      });
+      polyhedron = new THREE.Mesh(geom, wireMat);
+      scene.add(polyhedron);
+
+      // Inner glowing core
+      const innerGeom = new THREE.IcosahedronGeometry(4.5, 0);
+      const innerMat = new THREE.MeshBasicMaterial({
+        color: 0x4facfe,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.5,
+      });
+      const innerMesh = new THREE.Mesh(innerGeom, innerMat);
+      polyhedron.add(innerMesh);
+
+      // 4. Concentric 3D Quantum Rings
+      for (let r = 0; r < 3; r++) {
+        const ringGeom = new THREE.RingGeometry(8.5 + r * 2.2, 8.6 + r * 2.2, 64);
+        const ringMat = new THREE.MeshBasicMaterial({
+          color: r === 0 ? 0x00f2fe : (r === 1 ? 0xa855f7 : 0xffd166),
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.28 - r * 0.05,
+        });
+        const ringMesh = new THREE.Mesh(ringGeom, ringMat);
+        ringMesh.rotation.x = Math.PI / 2 + (r * 0.3);
+        ringMesh.rotation.y = (r * 0.4);
+        scene.add(ringMesh);
+        rings.push(ringMesh);
+      }
+
+      // 5. Dynamic 3D Financial Particles Field
+      const particleCount = 600;
+      particleGeo = new THREE.BufferGeometry();
+      const positions = new Float32Array(particleCount * 3);
+      const colors = new Float32Array(particleCount * 3);
+
+      const colorPalette = [
+        new THREE.Color(0x00f2fe),
+        new THREE.Color(0x4facfe),
+        new THREE.Color(0x00e676),
+        new THREE.Color(0xffd166)
+      ];
+
+      for (let i = 0; i < particleCount; i++) {
+        positions[i * 3]     = (Math.random() - 0.5) * 60;
+        positions[i * 3 + 1] = (Math.random() - 0.5) * 60;
+        positions[i * 3 + 2] = (Math.random() - 0.5) * 40;
+
+        const c = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+        colors[i * 3]     = c.r;
+        colors[i * 3 + 1] = c.g;
+        colors[i * 3 + 2] = c.b;
+      }
+
+      particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      particleGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+      const particleMat = new THREE.PointsMaterial({
+        size: 0.18,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.85,
+      });
+
+      particleSystem = new THREE.Points(particleGeo, particleMat);
+      scene.add(particleSystem);
+
+      // Event listeners
+      window.addEventListener('resize', onWindowResize, false);
+      window.addEventListener('mousemove', onMouseMove, false);
+
+      animate();
+    }
+
+    function onMouseMove(event) {
+      mouseX = (event.clientX - window.innerWidth / 2) * 0.0008;
+      mouseY = (event.clientY - window.innerHeight / 2) * 0.0008;
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Smooth 3D Polyhedron Rotation & Mouse Parallax
+      if (polyhedron) {
+        polyhedron.rotation.x += 0.003;
+        polyhedron.rotation.y += 0.004;
+        polyhedron.position.x += (mouseX * 12 - polyhedron.position.x) * 0.04;
+        polyhedron.position.y += (-mouseY * 12 - polyhedron.position.y) * 0.04;
+      }
+
+      // Orbiting Quantum Rings
+      rings.forEach((ring, idx) => {
+        ring.rotation.z += 0.002 * (idx % 2 === 0 ? 1 : -1);
+      });
+
+      // Drifting Particles
+      if (particleSystem) {
+        particleSystem.rotation.y += 0.0008;
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      try {
+        init3D();
+      } catch (e) {
+        console.warn("WebGL 3D fallback active:", e);
+      }
+    });
+  </script>
+
+  <!-- ================= AUTHENTICATION LOGIC ================= -->
+  <script>
+    function switchTab(tab) {
+      document.getElementById('view-login').style.display = tab === 'login' ? 'block' : 'none';
+      document.getElementById('view-register').style.display = tab === 'register' ? 'block' : 'none';
+      document.getElementById('tab-login-btn').classList.toggle('active', tab === 'login');
+      document.getElementById('tab-register-btn').classList.toggle('active', tab === 'register');
+      hideAlerts();
+    }
+
+    function togglePasswordVisibility(id) {
+      const el = document.getElementById(id);
+      el.type = el.type === 'password' ? 'text' : 'password';
+    }
+
+    function showAlert(type, msg) {
+      const err = document.getElementById('auth-alert-error');
+      const succ = document.getElementById('auth-alert-success');
+      if (type === 'error') {
+        err.textContent = msg;
+        err.style.display = 'block';
+        succ.style.display = 'none';
+      } else {
+        succ.textContent = msg;
+        succ.style.display = 'block';
+        err.style.display = 'none';
+      }
+    }
+
+    function hideAlerts() {
+      document.getElementById('auth-alert-error').style.display = 'none';
+      document.getElementById('auth-alert-success').style.display = 'none';
+    }
+
+    async function quickFillDemo(user, pwd) {
+      document.getElementById('login-identifier').value = user;
+      document.getElementById('login-password').value = pwd;
+      showAlert('success', `Authenticating institutional session for ${user.toUpperCase()}...`);
+      await handleLogin(new Event('submit'));
+    }
+
+    // Login Handler
+    async function handleLogin(e) {
+      e.preventDefault();
+      hideAlerts();
+      const identifier = document.getElementById('login-identifier').value.trim();
+      const password = document.getElementById('login-password').value;
+
+      const btn = document.getElementById('btn-login');
+      const spinner = document.getElementById('login-spinner');
+      const txt = document.getElementById('login-text');
+
+      btn.disabled = true;
+      spinner.style.display = 'inline-block';
+      txt.textContent = 'VERIFYING CREDENTIALS...';
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: identifier, password: password })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.detail || 'Authentication failed.');
+        }
+
+        sessionStorage.removeItem("trader_logged_out");
+        localStorage.setItem('trader_token', data.token);
+        localStorage.setItem('trader_user', JSON.stringify(data.user));
+        showAlert('success', `Welcome back, ${data.user.full_name}! Login details dispatched to WhatsApp (+91 6305496537). Redirecting...`);
+
+        setTimeout(() => {
+          window.location.replace('/');
+        }, 800);
+      } catch (err) {
+        showAlert('error', err.message);
+      } finally {
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        txt.textContent = 'AUTHENTICATE & ENTER DESK';
+      }
+    }
+
+    // Register Handler
+    async function handleRegister(e) {
+      e.preventDefault();
+      hideAlerts();
+
+      const name = document.getElementById('reg-name').value.trim();
+      const email = document.getElementById('reg-email').value.trim();
+      const phone = document.getElementById('reg-phone').value.trim();
+      const password = document.getElementById('reg-password').value;
+      const confirm = document.getElementById('reg-confirm').value;
+
+      if (password !== confirm) {
+        showAlert('error', 'Passwords do not match.');
+        return;
+      }
+
+      const btn = document.getElementById('btn-register');
+      const spinner = document.getElementById('reg-spinner');
+      const txt = document.getElementById('reg-text');
+
+      btn.disabled = true;
+      spinner.style.display = 'inline-block';
+      txt.textContent = 'REGISTERING ACCOUNT...';
+
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            full_name: name,
+            email: email,
+            phone: phone,
+            password: password,
+            confirm_password: confirm
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.detail || 'Registration failed.');
+        }
+
+        // Open OTP Modal
+        document.getElementById('otp-target-email').textContent = email;
+        const code = data.verification_code || '123456';
+        const hint = document.getElementById('otp-code-hint');
+        if (hint) {
+          hint.innerHTML = `🔑 Verification Code: <b style="color: var(--accent-green); letter-spacing: 2px; font-size: 1.05rem; cursor: pointer;" onclick="autofillOtp('${code}')">${code}</b> <span style="font-size: 0.72rem; color: var(--accent-cyan); margin-left: 6px;">(Click to Auto-Fill)</span>`;
+          hint.style.display = 'block';
+        }
+        autofillOtp(code);
+        openModal('modal-otp');
+        document.getElementById('form-register').reset();
+      } catch (err) {
+        showAlert('error', err.message);
+      } finally {
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        txt.textContent = 'CREATE QUANTITATIVE ACCOUNT';
+      }
+    }
+
+    // Modal Helpers
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    // OTP Handlers
+    function moveOtp(current, nextId) {
+      if (current.value.length === 1 && nextId) {
+        document.getElementById(nextId).focus();
+      }
+    }
+
+    function handleOtpKey(e, prevId, nextId) {
+      if (e.key === 'Backspace' && !e.target.value && prevId) {
+        document.getElementById(prevId).focus();
+      }
+    }
+
+    function handleOtpPaste(e) {
+      e.preventDefault();
+      const paste = (e.clipboardData || window.clipboardData).getData('text').trim();
+      if (paste.length >= 6) {
+        autofillOtp(paste.slice(0, 6));
+      }
+    }
+
+    function autofillOtp(code) {
+      if (!code) code = '123456';
+      for (let i = 0; i < 6; i++) {
+        const box = document.getElementById(`otp-${i+1}`);
+        if (box) box.value = code[i] || '';
+      }
+      const errBox = document.getElementById('otp-error');
+      if (errBox) errBox.style.display = 'none';
+    }
+
+    async function submitOtpVerification() {
+      let code = '';
+      for (let i = 1; i <= 6; i++) {
+        code += document.getElementById(`otp-${i}`).value;
+      }
+      const email = document.getElementById('otp-target-email').textContent;
+      const errBox = document.getElementById('otp-error');
+      const succBox = document.getElementById('otp-success');
+
+      try {
+        const res = await fetch('/api/auth/verify-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, code: code })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'OTP verification failed.');
+
+        succBox.textContent = data.message;
+        succBox.style.display = 'block';
+        errBox.style.display = 'none';
+
+        setTimeout(() => {
+          closeModal('modal-otp');
+          switchTab('login');
+          document.getElementById('login-identifier').value = email;
+          showAlert('success', 'Email verified successfully! You can now log in.');
+        }, 1200);
+      } catch (e) {
+        errBox.textContent = e.message;
+        errBox.style.display = 'block';
+        succBox.style.display = 'none';
+      }
+    }
+
+    async function resendOtp() {
+      const email = document.getElementById('otp-target-email').textContent;
+      try {
+        const res = await fetch('/api/auth/send-verification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email })
+        });
+        const data = await res.json();
+        const code = data.verification_code || '123456';
+        const hint = document.getElementById('otp-code-hint');
+        if (hint) {
+          hint.innerHTML = `🔑 New Verification Code: <b style="color: var(--accent-green); letter-spacing: 2px; font-size: 1.05rem; cursor: pointer;" onclick="autofillOtp('${code}')">${code}</b> (Click to Auto-Fill)`;
+          hint.style.display = 'block';
+        }
+        autofillOtp(code);
+        showAlert('success', `New OTP generated: ${code}`);
+      } catch (e) {
+        showAlert('error', 'Failed to resend OTP.');
+      }
+    }
+
+    // Forgot Password Handlers
+    function openForgotPasswordModal() {
+      document.getElementById('forgot-step-1').style.display = 'block';
+      document.getElementById('forgot-step-2').style.display = 'none';
+      document.getElementById('forgot-error').style.display = 'none';
+      document.getElementById('forgot-success').style.display = 'none';
+      openModal('modal-forgot');
+    }
+
+    async function requestPasswordReset() {
+      const ident = document.getElementById('forgot-identifier').value.trim();
+      const errBox = document.getElementById('forgot-error');
+      const succBox = document.getElementById('forgot-success');
+
+      if (!ident) {
+        errBox.textContent = 'Please enter your email or username.';
+        errBox.style.display = 'block';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/auth/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier: ident })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Reset request failed.');
+
+        document.getElementById('reset-token-input').value = data.reset_token;
+        document.getElementById('forgot-step-1').style.display = 'none';
+        document.getElementById('forgot-step-2').style.display = 'block';
+        errBox.style.display = 'none';
+      } catch (e) {
+        errBox.textContent = e.message;
+        errBox.style.display = 'block';
+      }
+    }
+
+    async function submitPasswordReset() {
+      const token = document.getElementById('reset-token-input').value;
+      const pwd = document.getElementById('reset-new-password').value;
+      const errBox = document.getElementById('forgot-error');
+      const succBox = document.getElementById('forgot-success');
+
+      if (!pwd || pwd.length < 6) {
+        errBox.textContent = 'Password must be at least 6 characters.';
+        errBox.style.display = 'block';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/auth/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: token, new_password: pwd })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Password reset failed.');
+
+        succBox.textContent = data.message;
+        succBox.style.display = 'block';
+        errBox.style.display = 'none';
+
+        setTimeout(() => {
+          closeModal('modal-forgot');
+          showAlert('success', 'Password reset successful! Sign in with your new cipher.');
+        }, 1200);
+      } catch (e) {
+        errBox.textContent = e.message;
+        errBox.style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>
